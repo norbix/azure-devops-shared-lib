@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release
 
-[0.1.1](https://dev.azure.com/PG-Digital/PlatformE/_git/build-templates?path=%2F&version=GT0.1.1&_a=contents)
+[0.1.1](https://dev.azure.com/example/_git/build-templates?path=%2F&version=GT0.1.1&_a=contents)
 
-[0.1.0](https://dev.azure.com/PG-Digital/PlatformE/_git/build-templates?path=%2F&version=GT0.1.0&_a=contents) 
+[0.1.0](https://dev.azure.com/example/_git/build-templates?path=%2F&version=GT0.1.0&_a=contents) 
 
