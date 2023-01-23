@@ -1,0 +1,22 @@
+parameters:
+  commandPrefix: ""
+  env: {}
+  package: defaultPackageName
+  displayName: Push helm package to Artifactory
+
+steps:
+  - template: in-agent-with-aws-creds.yaml
+    parameters:
+      command: |
+        echo Pushing ${{ parameters.package }} to $HELM_DEV_REPO_URL
+        ${{ parameters.commandPrefix }} curl -u$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN -T ${{ parameters.package }} $HELM_DEV_REPO_URL/${{ parameters.package }}
+        if [ $(Build.SourceBranchName) = "master" ]
+        then
+          echo Pushing ${{ parameters.package }} to $HELM_PROD_REPO_URL
+          ${{ parameters.commandPrefix }} curl -u$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN -T ${{ parameters.package }} $HELM_PROD_REPO_URL/${{ parameters.package }}
+        fi
+      env:
+        ARTIFACTORY_USER: $(ARTIFACTORY_USER)
+        ARTIFACTORY_TOKEN: $(ARTIFACTORY_TOKEN)
+        ${{ insert }}: ${{ parameters.env }}
+      displayName: ${{ parameters.displayName }}

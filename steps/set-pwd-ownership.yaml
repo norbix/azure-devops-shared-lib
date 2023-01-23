@@ -1,0 +1,16 @@
+parameters:
+  env: {}
+
+steps:
+  - script: |
+        WORKDIR=$(pwd)
+        docker run \
+          --rm \
+          -v "${WORKDIR}:${WORKDIR}" \
+          -w "${WORKDIR}" \
+          ubuntu:20.04 \
+          chown -R $(stat -c "%u:%g" $WORKDIR) $WORKDIR
+    displayName: "Give folder ownership back to user running docker"
+    env:
+      ${{ insert }}: ${{ parameters.env }}
+    condition: always()

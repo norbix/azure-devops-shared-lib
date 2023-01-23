@@ -1,0 +1,14 @@
+parameters:
+  namespace: non-existing-namespace
+  deployment: non-existing-deployment
+  always: false
+  cluster: core
+
+steps:
+  - template: run-with-eks.yaml
+    parameters:
+      command: |
+        kubectl logs --namespace ${{ parameters.namespace }} deployments/${{ parameters.deployment }} ||:
+      displayName: Fetch ${{ parameters.deployment }} logs
+      cluster: ${{ parameters.cluster }}
+      always: ${{ parameters.always }}

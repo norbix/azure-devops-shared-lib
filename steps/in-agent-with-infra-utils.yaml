@@ -1,0 +1,42 @@
+parameters:
+  command: |
+    echo in-agent-with-infra-utils default command
+  env: { }
+  displayName: Run in agent
+  always: false
+  condition: true
+  name: ""
+
+steps:
+  - script: |
+      rm -f .custom-env
+      for var in $(compgen -v | grep -Ev '^(BASH)|(^PATH)|(XDG)|(GNOME)|(^HIST)|(^HOST)|(^LC)|(^_)|(^AGENT)|(^SYSTEM)|(^JAVA)|(^HOME)|(^BUILD)'); do
+          var_fixed=$(printf "%s" "${!var}" | tr -d '\n' )
+          echo "$var=${var_fixed}" >>.custom-env
+      done      
+      WORKDIR=$(pwd)
+      docker run \
+        --env-file .custom-env \
+        --rm \
+        -v "${WORKDIR}:${WORKDIR}" \
+        -w "${WORKDIR}" \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        ubuntu:20.04 \
+        /bin/bash -c \
+        "
+        rm -f .custom-env      
+        apt-get update && apt-get install -y curl unzip gnupg
+        curl -sL https://aka.ms/InstallAzureCLIDeb | bash                
+        apt-get -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-confdef" dist-upgrade -q -y --allow-downgrades --allow-remove-essential --allow-change-held-packages
+        apt install software-properties-common -y                
+        curl -fsSL https://apt.releases.hashicorp.com/gpg > ./gpg.key && apt-key add ./gpg.key
+        apt-add-repository 'deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main'
+        apt-get install packer -y              
+        ${{ parameters.command }}
+        "
+    env:
+      ${{ insert }}: ${{ parameters.env }}
+    displayName: ${{ parameters.displayName }}
+    condition: or(${{ parameters.always }}, and(succeeded(), ${{ parameters.condition }}))
+    ${{ if not(eq( parameters.name, '')) }}:
+    name: ${{ parameters.name }}

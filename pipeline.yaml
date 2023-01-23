@@ -1,0 +1,74 @@
+trigger:
+  branches:
+    include:
+      - '*'
+
+resources:
+  pipelines:
+    - pipeline: build-templates
+      source: build-templates
+      branch: master
+
+variables:
+  - group: cluster-core-dev
+
+jobs:
+  - job: steps
+    pool:
+      name: Default
+      demands: sh
+
+    steps:
+      - template: steps/in-agent.yaml
+      - template: steps/in-agent.yaml #HINT: overloaded
+        parameters:
+          command: |
+            ./tests/check-env-var.sh
+          env:
+            VARIABLE: correct
+          displayName: test displayname
+
+      - template: steps/in-agent-with-aws-creds.yaml
+      - template: steps/in-agent-with-aws-creds.yaml #HINT: overloaded
+        parameters:
+          command: |
+            ./tests/check-env-var.sh
+          env:
+            VARIABLE: correct
+
+      - template: steps/increment-tag.yaml
+
+      - template: steps/push-helm.yaml
+        parameters:
+          commandPrefix: echo
+
+      - template: steps/push-image.yaml
+        parameters:
+          commandPrefix: echo
+
+      - template: steps/run-with-ecr.yaml
+      - template: steps/run-with-ecr.yaml #HINT: overloaded
+        parameters:
+          command: |
+            ./tests/check-env-var.sh
+          env:
+            VARIABLE: correct
+          displayName: test-nested-display-name
+
+      - template: steps/set-build-number.yaml #HINT: overloaded
+        parameters:
+          version: temp
+      - template: steps/set-build-number.yaml
+
+      - template: steps/set-pwd-ownership.yaml
+
+  - job: publish_tools
+    dependsOn: []
+    pool:
+      name: Default
+      demands: sh
+    steps:
+      - publish: $(System.DefaultWorkingDirectory)/handle-storage
+        artifact: handle-storage
+
+      - template: steps/handle-storage.yaml

@@ -1,0 +1,35 @@
+parameters:
+  command: |
+    echo in-agent default command
+  env: { }
+  displayName: Run in agent
+  always: false
+  condition: true
+  name: ""
+
+steps:
+  - script: |
+      rm -f .custom-env
+      for var in $(compgen -v | grep -Ev '^(BASH)|(^PATH)|(XDG)|(GNOME)|(^HIST)|(^HOST)|(^LC)|(^_)|(^AGENT)|(^SYSTEM)|(^JAVA)|(^HOME)|(^BUILD)'); do
+          var_fixed=$(printf "%s" "${!var}" | tr -d '\n' )
+          echo "$var=${var_fixed}" >>.custom-env
+      done      
+      WORKDIR=$(pwd)
+      docker run \
+        --env-file .custom-env \
+        --rm \
+        -v "${WORKDIR}:${WORKDIR}" \
+        -w "${WORKDIR}" \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        ubuntu:20.04 \
+        /bin/bash -c \
+        "
+        rm -f .custom-env
+        ${{ parameters.command }}
+        "
+    env:
+      ${{ insert }}: ${{ parameters.env }}
+    displayName: ${{ parameters.displayName }}
+    condition: or(${{ parameters.always }}, and(succeeded(), ${{ parameters.condition }}))
+    ${{ if not(eq( parameters.name, '')) }}:
+    name: ${{ parameters.name }}

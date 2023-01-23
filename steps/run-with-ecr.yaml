@@ -1,0 +1,21 @@
+parameters:
+  command: |
+    echo run-with-ecr default command
+  env: {}
+  displayName: Run with ecr
+  always: false
+  condition: true
+  name: ''
+
+steps:
+  - template: in-agent-with-aws-creds.yaml
+    parameters:
+      command: |
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_NUMBER.dkr.ecr.$AWS_REGION.amazonaws.com
+        ${{ parameters.command }}
+      env:
+        ${{ insert }}: ${{ parameters.env }}
+      displayName: ${{ parameters.displayName }}
+      always: ${{ parameters.always }}
+      condition: ${{ parameters.condition }}
+      name: ${{ parameters.name }}

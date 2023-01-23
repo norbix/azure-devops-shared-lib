@@ -1,0 +1,38 @@
+parameters:
+    env: { }
+    displayName: 'Tag and push images to remote repos ECS or rtifactory default name'
+    commandPrefix: ""
+    image: defaultImage
+    tag: defaultTag
+    deploy2Artifactory: 0                                                                                               #NOTE: default 0 -> false
+
+steps:
+  - template: run-with-ecr.yaml
+    parameters:
+      env:
+        ${{ insert }}: ${{ parameters.env }}
+      command: |
+        if [ ${{ parameters.deploy2Artifactory }} = "1" ]                                                               #HINT: happy path pattern
+        then
+          echo Pushing $IMAGE_REGISTRY_DEV/${{ parameters.image }}:${{ parameters.tag }}
+          ${{ parameters.commandPrefix }} docker login -u $ARTIFACTORY_USER -p $ARTIFACTORY_TOKEN $IMAGE_REGISTRY_DEV
+          ${{ parameters.commandPrefix }} docker tag ${{ parameters.image }}:${{ parameters.tag }} $IMAGE_REGISTRY_DEV/${{ parameters.image }}:${{ parameters.tag }}
+          ${{ parameters.commandPrefix }} docker push $IMAGE_REGISTRY_DEV/${{ parameters.image }}:${{ parameters.tag }}
+          if [ $(Build.SourceBranchName) = "master" ]
+          then
+            echo Pushing $IMAGE_REGISTRY_PROD/${{ parameters.image }}:latest
+            ${{ parameters.commandPrefix }} docker tag ${{ parameters.image }}:${{ parameters.tag }} $IMAGE_REGISTRY_PROD/${{ parameters.image }}:latest
+            ${{ parameters.commandPrefix }} docker push $IMAGE_REGISTRY_PROD/${{ parameters.image }}:latest
+          fi
+        fi
+
+        echo Pushing $AWS_ACCOUNT_NUMBER.dkr.ecr.$AWS_REGION.amazonaws.com/${{ parameters.image }}:${{ parameters.tag }}
+        ${{ parameters.commandPrefix }} docker tag ${{ parameters.image }}:${{ parameters.tag }} $AWS_ACCOUNT_NUMBER.dkr.ecr.$AWS_REGION.amazonaws.com/${{ parameters.image }}:${{ parameters.tag }}
+        ${{ parameters.commandPrefix }} docker push $AWS_ACCOUNT_NUMBER.dkr.ecr.$AWS_REGION.amazonaws.com/${{ parameters.image }}:${{ parameters.tag }}
+        if [ $(Build.SourceBranchName) = "master" ]
+        then
+          echo Pushing $AWS_ACCOUNT_NUMBER.dkr.ecr.$AWS_REGION.amazonaws.com/${{ parameters.image }}:latest
+          ${{ parameters.commandPrefix }} docker tag ${{ parameters.image }}:${{ parameters.tag }} $AWS_ACCOUNT_NUMBER.dkr.ecr.$AWS_REGION.amazonaws.com/${{ parameters.image }}:latest
+          ${{ parameters.commandPrefix }} docker push $AWS_ACCOUNT_NUMBER.dkr.ecr.$AWS_REGION.amazonaws.com/${{ parameters.image }}:latest
+        fi
+      displayName: ${{ parameters.displayName }}

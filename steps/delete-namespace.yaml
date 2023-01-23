@@ -1,0 +1,48 @@
+parameters:
+  namespace: non-existing-namespace
+  create: false
+  always: true
+  cluster: core
+
+steps:
+  - script: |
+      if ! [[ "${{ parameters.namespace }}" =~ ^[a-z0-9-]{2,36}$ ]]; then
+        printf "Invalid branch name.\nOnly a-z, 0-9 and - are allowed.\nLength of the branch name (after last /) must be 2-28 characters\nValidation regex used was ^[A-Za-z0-9-]{2,34}\$"
+        exit 1
+      fi
+    displayName: Validate branch name
+  - template: run-with-eks.yaml
+    parameters:
+      command: |
+        case '${{ parameters.namespace }}' in
+          ambassador|cert-manager|default|kube-node-lease|kube-public|kube-system|monitor|nginx-ingress|pre-staging|production|staging)
+            echo 'Template does not allow deletion of namespace ${{ parameters.namespace }}'
+            exit 1
+            ;;
+          *)
+            echo 'Template allows deletion'
+            ;;
+        esac
+        # don't touch the following line - needed to handle things like single quotes in comments
+        case '$(tr -cd '[:alnum:]-.][[:space:]' <<<"$(Build.SourceVersionMessage)")' in
+          *\[keep\]*)
+            echo 'Found [keep] in commit message, still deleting namespace'
+            kubectl delete namespace ${{ parameters.namespace }} --now --wait ||:
+            ;;
+          *)
+            echo '[keep] was not found in commit message - deleting namespace'
+            kubectl delete namespace ${{ parameters.namespace }} --now --wait ||:
+            ;;
+        esac
+      displayName: Delete namespace ${{ parameters.namespace }}
+      always: ${{ parameters.always }}
+      cluster: ${{ parameters.cluster }}
+
+  - ${{ if eq(parameters.create, true) }}:
+    - template: run-with-eks.yaml
+      parameters:
+        command: |
+          kubectl create namespace ${{ parameters.namespace }} ||:
+          kubectl label namespace ${{ parameters.namespace }} name=${{ parameters.namespace }} --overwrite
+        displayName: Create namespace ${{ parameters.namespace }}
+        cluster: ${{ parameters.cluster }}

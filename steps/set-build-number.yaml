@@ -1,0 +1,9 @@
+parameters:
+  version: $(git describe)
+  env: {}
+
+steps:
+  - script: echo "##vso[build.updatebuildnumber]${{ parameters.version }}"
+    displayName: "Update build number"
+    env:
+      ${{ insert }}: ${{ parameters.env }}

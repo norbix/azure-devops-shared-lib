@@ -1,0 +1,31 @@
+parameters:
+  env: {}
+
+steps:
+  - script: |
+      VERSION=$(git describe --abbrev=0 --tags)
+      VERSION_NUMBERS=(${VERSION//./ })
+      V1=${VERSION_NUMBERS[0]}
+      V2=${VERSION_NUMBERS[1]}
+      V3=${VERSION_NUMBERS[2]}
+      V4=$((V3+1))
+      TAG="$V1.$V2.$V4"
+
+      GIT_COMMIT=$(git rev-parse HEAD)
+      HAS_TAG=$(git describe --contains $GIT_COMMIT 2>/dev/null)
+      if [ "$HAS_TAG" ]; then
+          echo "Already a tag on this commit"
+          exit 0
+      fi
+
+      echo "Incrementing tag: $VERSION -> $TAG"
+      git config user.email "buildbot@gmail.com"
+      git config user.name "buildbot"
+      git config http.sslVerify "false"
+      echo "Tagged as $TAG"
+      git tag -a $TAG -m "" && git -c http.extraheader="AUTHORIZATION: bearer $AccessToken" push --tags
+    displayName: Increment tag
+    env:
+      AccessToken: $(System.AccessToken)
+      ${{ insert }}: ${{ parameters.env }}
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
